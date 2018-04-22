@@ -9,20 +9,30 @@ import java.util.*;
 public class EchoServer
 {
     public static ArrayList<User> Users;
+    public static String inputFile;
+    public static User currentUser = null; //keeps track of the current user loggedin
 
     public static void main(String args[])
     {
-        String inputFile = "users.txt";
+        inputFile = "users.txt";
 
         Users = getUsersFromFile(inputFile);
         Socket s;
+        ServerSocket echoServer;
+
+
+        try{
+            echoServer = new ServerSocket(1060);
+        }catch(IOException ioe){
+            System.out.println("System failed to create server socket.");
+            return;
+        }
 
         while(true) {
 
             boolean connected = true;
 
             try {
-                ServerSocket echoServer = new ServerSocket(1060);
 
                 System.out.println("Waiting for a client to connect...");
 
@@ -32,15 +42,15 @@ public class EchoServer
                 PrintStream outs = new PrintStream(s.getOutputStream());
 
                 while (connected) {
-                    //used to get input from client
+                    // used to get input from client
                     String line = ins.readLine();
 
-                    //parse string to get command and attributes
+                    // parse string to get command and attributes
                     String deliminators = "[ ]";
                     String[] tokens = line.split(deliminators);
 
                     if (tokens[0].equals("login")) {
-                        //send username and password to server for authentication
+
                         String username = tokens[1];
                         String password = tokens[2];
 
@@ -48,12 +58,25 @@ public class EchoServer
 
                     } else if (tokens[0].equals("newuser")) {
 
+                        String username = tokens[1];
+                        String password = tokens[2];
+
+                        newUser(username, password, ins, outs);
+
                     } else if (tokens[0].equals("send")) {
+                        // send only works if client is logged in
+
+                        String message = tokens[1];
+
+                        send(message, ins, outs);
 
                     } else if (tokens[0].equals("logout")) {
-                        connected = false;
+                        // logout only works if client is logged in
+                        if(logout(ins, outs))
+                        {
+                            connected = false;
+                        }
                     }
-
                 }
                 s.close();
                 System.out.println("Client Closed.");
@@ -70,7 +93,7 @@ public class EchoServer
     {
         // handles the login functionality
         boolean loginSuccessful = false;
-
+        User loggedInUser = null;
         // find username and compare password
         for(User u: Users)
         {
@@ -80,12 +103,14 @@ public class EchoServer
                 if(u.password.equals(password))
                 {
                     loginSuccessful = true;
+                    loggedInUser = u;
                 }
             }
         }
 
         if(loginSuccessful)
         {
+            currentUser = loggedInUser;
             outs.println(true);
             outs.println(username + " is now logged in.");
             return true;
@@ -98,7 +123,7 @@ public class EchoServer
         }
     }
 
-    public static boolean newUser(String username, String password)
+    public static boolean newUser(String username, String password, BufferedReader ins, PrintStream outs)
     {
 
         //check if username and password are the correct format
@@ -117,17 +142,87 @@ public class EchoServer
             return false;
         }
 
+        for(User u: Users)
+        {
+            if(u.username.equals(username))
+            {
+                // The username already exists
+                outs.println(false);
+                outs.println("Username already exists!");
+                return false;
+            }
+        }
+
+        // The user info is valid and does not already exist, so create new user
+        String[] userInfo = {username, password};
+        User newUser = new User(userInfo);
+
+        // add new user to ArrayList
+        Users.add(newUser);
+
+        // write new user to inputfile
+        try{
+            BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile, true));
+            writer.append("\n" + username + " " + password);
+            writer.close();
+        }catch(IOException e){
+            System.out.println(e);
+            outs.println(false);
+            outs.println("Error writing to file! User creation failed!");
+            Users.remove(newUser);
+            return false;
+        }catch(Exception e) // in case of Null Pointer Exception
+        {
+            outs.println(false);
+            outs.println("Error in writing to file! User creation failed!");
+            Users.remove(newUser);
+            return false;
+        }
+
+        // User creation successful, user logged in
+        currentUser = newUser;
+        outs.println(true);
+        outs.println("User creation successful! Welcome " + username + "!");
+
         return true;
     }
 
-    public static boolean send(String message)
+    public static boolean send(String message, BufferedReader ins, PrintStream outs)
     {
-        return true;
+        // check to make sure user is logged in
+
+        if(currentUser.equals(null))
+        {
+           // if user is not logged in shoot back error message
+           outs.println(false);
+           outs.println("You are currently not logged in!");
+           return false;
+        }
+        else
+        {
+            outs.println(true);
+            outs.println(currentUser.username + ": " + message);
+            return true;
+        }
+
     }
 
-    public static boolean logout()
+    public static boolean logout(BufferedReader ins, PrintStream outs)
     {
-        return true;
+
+        if(currentUser.equals(null))
+        {
+            // if user is not logged in shoot back error message
+            outs.println(false);
+            outs.println("You are currently not logged in!");
+            return false;
+        }
+        else
+        {
+            outs.println(true);
+            outs.println(currentUser.username + ": left");
+            return true;
+        }
     }
 
 
@@ -168,6 +263,7 @@ public class EchoServer
 
             // Always close files.
             bufferedReader.close();
+            fileReader.close();
         }
         catch(FileNotFoundException ex) {
             System.out.println(
@@ -181,10 +277,5 @@ public class EchoServer
         }
 
         return Users;
-    }
-
-    public static boolean writeUserToFile()
-    {
-        return true;
     }
 }
