@@ -27,8 +27,6 @@ public class EchoClient
 
             System.out.println("My chat room client.");
 
-
-
             while(loggedin)
             {
                 System.out.print("Enter Commands: ");
