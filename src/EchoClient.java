@@ -58,6 +58,10 @@ public class EchoClient
                     else if (tokens[0].equals("send"))
                     {
                         String message = tokens[1];
+                        for( int i = 2; i < tokens.length; i++)
+                        {
+                            message += (" " + tokens[i]);
+                        }
 
                         send(message, ins, outs);
                     }
@@ -115,7 +119,7 @@ public class EchoClient
         }
         else if (tokens[0].equals("send"))
         {
-            if(tokens.length != 2)
+            if(tokens.length < 2)
             {
                 System.out.println("No message given to send!");
                 return false;

@@ -66,6 +66,10 @@ public class EchoServer
                         // send only works if client is logged in
 
                         String message = tokens[1];
+                        for( int i = 2; i < tokens.length; i++)
+                        {
+                            message += (" " + tokens[i]);
+                        }
 
                         send(message, ins, outs);
 
@@ -83,7 +87,7 @@ public class EchoServer
                 //System.out.println(e);
             } catch (Exception e)
             {
-                // do nothing
+                System.out.println(e);
             }
         }
     }
@@ -112,6 +116,7 @@ public class EchoServer
             currentUser = loggedInUser;
             outs.println(true);
             outs.println(username + " is now logged in.");
+            System.out.println(username + " is now logged in.");
             return true;
         }
         else
@@ -182,6 +187,7 @@ public class EchoServer
         currentUser = newUser;
         outs.println(true);
         outs.println("User creation successful! Welcome " + username + "!");
+        System.out.println(username + " is now created and logged in.");
 
         return true;
     }
@@ -190,7 +196,7 @@ public class EchoServer
     {
         // check to make sure user is logged in
 
-        if(currentUser.equals(null))
+        if(currentUser == null)
         {
            // if user is not logged in shoot back error message
            outs.println(false);
@@ -201,15 +207,15 @@ public class EchoServer
         {
             outs.println(true);
             outs.println(currentUser.username + ": " + message);
+            System.out.println(currentUser.username + ": " + message);
             return true;
         }
-
     }
 
     public static boolean logout(BufferedReader ins, PrintStream outs)
     {
 
-        if(currentUser.equals(null))
+        if(currentUser == null)
         {
             // if user is not logged in shoot back error message
             outs.println(false);
@@ -220,10 +226,10 @@ public class EchoServer
         {
             outs.println(true);
             outs.println(currentUser.username + ": left");
+            System.out.println(currentUser.username + ": left");
             return true;
         }
     }
-
 
     public static ArrayList<User> getUsersFromFile(String inputFile)
     {
