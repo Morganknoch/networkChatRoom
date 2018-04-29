@@ -3,14 +3,16 @@
  */
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 
 public class EchoClient extends Thread
 {
-    public static InputStreamReader convert;
-    public static BufferedReader stdin;
-    public static PrintStream outs;
-    public static BufferedReader ins;
+    //public static InputStreamReader convert;
+    //public static BufferedReader stdin;
+    public static DataInputStream ins;
+    public static DataOutputStream outs;
     public static boolean loggedin = true;
+    public static Scanner stdin;
 
     public static void main(String args[])
     {
@@ -20,29 +22,32 @@ public class EchoClient extends Thread
             return;
         }
 
-        InputStreamReader convert = new InputStreamReader(System.in);
-        BufferedReader stdin = new BufferedReader(convert);
-
-
+//        InputStreamReader convert = new InputStreamReader(System.in);
+//        BufferedReader stdin = new BufferedReader(convert);
+        stdin = new Scanner(System.in);
 
         try
         {
             Socket echoClient = new Socket(args[0], 11060);
-            outs = new PrintStream(echoClient.getOutputStream());
-            ins = new BufferedReader(new InputStreamReader(echoClient.getInputStream()));
+            outs = new DataOutputStream(echoClient.getOutputStream());
+            ins = new DataInputStream((echoClient.getInputStream()));
+
+            //outs.writeUTF("login Tom Tom11");
 
             System.out.println("My chat room client.");
 
-
             Thread sendMessageToServer = new Thread(new Runnable() {
+
+                /* This thread is used to send messages to the server
+                * */
 
                 public void run() {
 
                     while (loggedin) {
 
                         try {
-                            System.out.print("Enter Commands: ");
-                            String line = stdin.readLine();
+                            System.out.print(": ");
+                            String line = stdin.nextLine();
 
                             //CHECK IF INPUTTED COMMANDS AND ARGS ARE VALID
                             if (commandsAccepted(line)) {
@@ -68,7 +73,13 @@ public class EchoClient extends Thread
                                     send(message);
                                 } else if (tokens[0].equals("logout")) {
                                     if (logout()) {
+                                        // logout, close the client, and exit the program
                                         loggedin = false;
+                                        echoClient.close();
+
+                                        //exit out of program
+                                        return;
+
                                     }
                                 }
                             } else {
@@ -94,19 +105,17 @@ public class EchoClient extends Thread
 
                         try {
 
-                            String success = ins.readLine();
-                            String message = ins.readLine();
+                            boolean success = ins.readBoolean();
+                            String message = ins.readUTF();
 
-                            boolean successful = Boolean.parseBoolean(success);
-
-                            if(successful)
+                            if(success)
                             {
-                                //login successful
+                                // no error
                                 System.out.println(message);
                             }
                             else
                             {
-                                // login failed
+                                // error
                                 System.out.println(message);
 
                             }
@@ -116,12 +125,11 @@ public class EchoClient extends Thread
                         }
                     }
                 }
-
-
-
             });
 
-            echoClient.close();
+            sendMessageToServer.start();
+            readMessageFromServer.start();
+
         }
         catch (IOException e)
         {
@@ -186,25 +194,8 @@ public class EchoClient extends Thread
         try {
             //send login info to server
             String line = "login " + username + " " + password;
-            outs.println(line);
+            outs.writeUTF(line);
 
-            //retrieve info from server about login
-//            String success = ins.readLine();
-//            String messageFromServer = ins.readLine();
-//
-//            boolean successful = Boolean.parseBoolean("true");
-//
-//            if(successful)
-//            {
-//                //login successful
-//                System.out.println("Server says: " + messageFromServer);
-//            }
-//            else
-//            {
-//                // login failed
-//                System.out.println("Server says: " + messageFromServer);
-//                return false;
-//            }
         }
         catch(Exception e){
             System.out.println("Error occured in login");
@@ -222,25 +213,8 @@ public class EchoClient extends Thread
         try {
             //send login info to server
             String line = "newuser " + username + " " + password;
-            outs.println(line);
+            outs.writeUTF(line);
 
-            //retrieve info from server about new user creation
-//            String success = ins.readLine();
-//            String messageFromServer = ins.readLine();
-//
-//            boolean successful = Boolean.parseBoolean("true");
-//
-//            if(successful)
-//            {
-//                //newuser successful
-//                System.out.println("Server says: " + messageFromServer);
-//            }
-//            else
-//            {
-//                // newuser failed
-//                System.out.println("Server says: " + messageFromServer);
-//                return false;
-//            }
         }
         catch(Exception e){
             System.out.println("Error occured in new user creation");
@@ -257,25 +231,8 @@ public class EchoClient extends Thread
         try {
             //send login info to server
             String line = "send " + message;
-            outs.println(line);
+            outs.writeUTF(line);
 
-            //retrieve info from server about new user creation
-//            String success = ins.readLine();
-//            String messageFromServer = ins.readLine();
-//
-//            boolean successful = Boolean.parseBoolean("true");
-//
-//            if(successful)
-//            {
-//                //send successful
-//                System.out.println(messageFromServer);
-//            }
-//            else
-//            {
-//                // send failed
-//                System.out.println("Server says: " + messageFromServer);
-//                return false;
-//            }
         }
         catch(Exception e){
             System.out.println("Error occured in sending message");
@@ -292,25 +249,8 @@ public class EchoClient extends Thread
         try {
             //send login info to server
             String line = "logout";
-            outs.println(line);
+            outs.writeUTF(line);
 
-            //retrieve info from server about new user creation
-//            String success = ins.readLine();
-//            String messageFromServer = ins.readLine();
-//
-//            boolean successful = Boolean.parseBoolean("true");
-//
-//            if(successful)
-//            {
-//                //logout successful
-//                System.out.println("Server says: " + messageFromServer);
-//            }
-//            else
-//            {
-//                // logout failed
-//                System.out.println("Server says: " + messageFromServer);
-//                return false;
-//            }
         }
         catch(Exception e){
             System.out.println("Error occured in logout");
