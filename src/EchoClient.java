@@ -7,8 +7,6 @@ import java.util.Scanner;
 
 public class EchoClient extends Thread
 {
-    //public static InputStreamReader convert;
-    //public static BufferedReader stdin;
     public static DataInputStream ins;
     public static DataOutputStream outs;
     public static boolean loggedin = true;
@@ -22,8 +20,7 @@ public class EchoClient extends Thread
             return;
         }
 
-//        InputStreamReader convert = new InputStreamReader(System.in);
-//        BufferedReader stdin = new BufferedReader(convert);
+        // create console input object
         stdin = new Scanner(System.in);
 
         try
@@ -31,8 +28,6 @@ public class EchoClient extends Thread
             Socket echoClient = new Socket(args[0], 11060);
             outs = new DataOutputStream(echoClient.getOutputStream());
             ins = new DataInputStream((echoClient.getInputStream()));
-
-            //outs.writeUTF("login Tom Tom11");
 
             System.out.println("My chat room client.");
 
@@ -75,10 +70,13 @@ public class EchoClient extends Thread
                                     if (logout()) {
                                         // logout, close the client, and exit the program
                                         loggedin = false;
-                                        echoClient.close();
 
-                                        //exit out of program
-                                        return;
+                                        //close down thread
+                                        Thread.currentThread().interrupt();
+
+
+                                        // close socket
+                                        echoClient.close();
 
                                     }
                                 }
@@ -124,6 +122,9 @@ public class EchoClient extends Thread
 
                         }
                     }
+
+                    // close current thread on logout
+                    Thread.currentThread().interrupt();
                 }
             });
 
@@ -133,7 +134,7 @@ public class EchoClient extends Thread
         }
         catch (IOException e)
         {
-            System.out.println(e);
+            //System.out.println(e);
         }
     }
 
