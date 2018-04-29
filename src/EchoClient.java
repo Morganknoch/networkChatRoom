@@ -146,7 +146,7 @@ public class EchoClient
             String success = ins.readLine();
             String messageFromServer = ins.readLine();
 
-            boolean successful = Boolean.parseBoolean("true");
+            boolean successful = Boolean.parseBoolean(success);
 
             if(successful)
             {
@@ -182,7 +182,7 @@ public class EchoClient
             String success = ins.readLine();
             String messageFromServer = ins.readLine();
 
-            boolean successful = Boolean.parseBoolean("true");
+            boolean successful = Boolean.parseBoolean(success);
 
             if(successful)
             {
@@ -217,7 +217,7 @@ public class EchoClient
             String success = ins.readLine();
             String messageFromServer = ins.readLine();
 
-            boolean successful = Boolean.parseBoolean("true");
+            boolean successful = Boolean.parseBoolean(success);
 
             if(successful)
             {
@@ -252,7 +252,7 @@ public class EchoClient
             String success = ins.readLine();
             String messageFromServer = ins.readLine();
 
-            boolean successful = Boolean.parseBoolean("true");
+            boolean successful = Boolean.parseBoolean(success);
 
             if(successful)
             {
