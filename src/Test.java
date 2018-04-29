@@ -3,26 +3,36 @@
  */
 import java.io.*;
 import java.net.*;
-//import java.nio.file.Files;
 
-public class Test {
+
+public class Test extends Thread{
 
     public static void main(String args[]){
-
 
         String inputFile = "users.txt";
         String username = "Bob";
         String password = "Bob44";
 
-        try{
-            BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile, true));
-            writer.append("\n" + username + " " + password);
+        InputStreamReader convert = new InputStreamReader(System.in);
+        BufferedReader stdin = new BufferedReader(convert);
 
-            writer.close();
+        try{
+            System.out.println("Start thread");
+            (new Thread(new Test())).start();
+            System.out.println("Enter commands");
+            String line = stdin.readLine();
+            System.out.println("Start new thread");
+            (new Thread(new Test())).start();
         }catch(IOException e){
-            System.out.println(e);
 
         }
-    }
 
+    }
+    public void run(){
+        int x = 0;
+        while(x++<1000000000)
+        {
+            System.out.println(x);
+        }
+    }
 }

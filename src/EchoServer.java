@@ -10,6 +10,7 @@ public class EchoServer
     public static ArrayList<User> Users;
     public static String inputFile;
     public static User currentUser = null; //keeps track of the current user loggedin
+    public static final int MAXCLIENTS = 3;
 
     public static void main(String args[])
     {
@@ -21,7 +22,7 @@ public class EchoServer
 
 
         try{
-            echoServer = new ServerSocket(1060);
+            echoServer = new ServerSocket(11060);
         }catch(IOException ioe){
             System.out.println("System failed to create server socket.");
             return;

@@ -4,8 +4,14 @@
 import java.io.*;
 import java.net.*;
 
-public class EchoClient
+public class EchoClient extends Thread
 {
+    public static InputStreamReader convert;
+    public static BufferedReader stdin;
+    public static PrintStream outs;
+    public static BufferedReader ins;
+    public static boolean loggedin = true;
+
     public static void main(String args[])
     {
         if(args.length != 1)
@@ -17,63 +23,103 @@ public class EchoClient
         InputStreamReader convert = new InputStreamReader(System.in);
         BufferedReader stdin = new BufferedReader(convert);
 
-        boolean loggedin = true;
+
 
         try
         {
-            Socket echoClient = new Socket(args[0], 1060);
-            PrintStream outs = new PrintStream(echoClient.getOutputStream());
-            BufferedReader ins = new BufferedReader(new InputStreamReader(echoClient.getInputStream()));
+            Socket echoClient = new Socket(args[0], 11060);
+            outs = new PrintStream(echoClient.getOutputStream());
+            ins = new BufferedReader(new InputStreamReader(echoClient.getInputStream()));
 
             System.out.println("My chat room client.");
 
-            while(loggedin)
-            {
-                System.out.print("Enter Commands: ");
-                String line = stdin.readLine();
 
-                //CHECK IF INPUTTED COMMANDS AND ARGS ARE VALID
-                if(commandsAccepted(line))
-                {
-                    //commands are valid
-                    String deliminators = "[ ]";
-                    String[] tokens = line.split(deliminators);
+            Thread sendMessageToServer = new Thread(new Runnable() {
 
-                    if(tokens[0].equals("login"))
-                    {
-                        //send username and password to server for authentication
-                        String username = tokens[1];
-                        String password = tokens[2];
+                public void run() {
 
-                        login(username,password, ins, outs);
+                    while (loggedin) {
 
-                    }
-                    else if (tokens[0].equals("newuser"))
-                    {
-                        String username = tokens[1];
-                        String password = tokens[2];
+                        try {
+                            System.out.print("Enter Commands: ");
+                            String line = stdin.readLine();
 
-                        newUser(username,password, ins, outs);
-                    }
-                    else if (tokens[0].equals("send"))
-                    {
-                        String message = tokens[1];
+                            //CHECK IF INPUTTED COMMANDS AND ARGS ARE VALID
+                            if (commandsAccepted(line)) {
+                                //commands are valid
+                                String deliminators = "[ ]";
+                                String[] tokens = line.split(deliminators);
 
-                        send(message, ins, outs);
-                    }
-                    else if (tokens[0].equals("logout"))
-                    {
-                        if(logout(ins, outs))
+                                if (tokens[0].equals("login")) {
+                                    //send username and password to server for authentication
+                                    String username = tokens[1];
+                                    String password = tokens[2];
+
+                                    login(username, password);
+
+                                } else if (tokens[0].equals("newuser")) {
+                                    String username = tokens[1];
+                                    String password = tokens[2];
+
+                                    newUser(username, password);
+                                } else if (tokens[0].equals("send")) {
+                                    String message = tokens[1];
+
+                                    send(message);
+                                } else if (tokens[0].equals("logout")) {
+                                    if (logout()) {
+                                        loggedin = false;
+                                    }
+                                }
+                            } else {
+                                //commands were incorrect, do nothing
+                            }
+                        }catch(Exception e)
                         {
-                            loggedin = false;
+
                         }
                     }
                 }
-                else
+            });
+
+            Thread readMessageFromServer = new Thread( new Runnable()
+            {
+                /* messages from the server should come in two parts
+                   1. Whether the message is normal or an error (true or false)
+                   2. The message itself
+                */
+                public void run()
                 {
-                    //commands were incorrect, do nothing
+                    while(loggedin) {
+
+                        try {
+
+                            String success = ins.readLine();
+                            String message = ins.readLine();
+
+                            boolean successful = Boolean.parseBoolean(success);
+
+                            if(successful)
+                            {
+                                //login successful
+                                System.out.println(message);
+                            }
+                            else
+                            {
+                                // login failed
+                                System.out.println(message);
+
+                            }
+                            
+                        } catch (Exception e) {
+
+                        }
+                    }
                 }
-            }
+
+
+
+            });
 
             echoClient.close();
         }
@@ -133,7 +179,7 @@ public class EchoClient
         }
     }
 
-    public static boolean login(String username, String password, BufferedReader ins, PrintStream outs)
+    public static boolean login(String username, String password)
     {
         // handles the login functionality
 
@@ -143,24 +189,24 @@ public class EchoClient
             outs.println(line);
 
             //retrieve info from server about login
-            String success = ins.readLine();
-            String messageFromServer = ins.readLine();
-
-            boolean successful = Boolean.parseBoolean("true");
-
-            if(successful)
-            {
-                //login successful
-                System.out.println("Server says: " + messageFromServer);
-            }
-            else
-            {
-                // login failed
-                System.out.println("Server says: " + messageFromServer);
-                return false;
-            }
+//            String success = ins.readLine();
+//            String messageFromServer = ins.readLine();
+//
+//            boolean successful = Boolean.parseBoolean("true");
+//
+//            if(successful)
+//            {
+//                //login successful
+//                System.out.println("Server says: " + messageFromServer);
+//            }
+//            else
+//            {
+//                // login failed
+//                System.out.println("Server says: " + messageFromServer);
+//                return false;
+//            }
         }
-        catch(IOException e){
+        catch(Exception e){
             System.out.println("Error occured in login");
             System.out.println(e);
             return false;
@@ -169,7 +215,7 @@ public class EchoClient
         return true;
     }
 
-    public static boolean newUser(String username, String password, BufferedReader ins, PrintStream outs)
+    public static boolean newUser(String username, String password)
     {
         // handles new user creation functionality
 
@@ -179,24 +225,24 @@ public class EchoClient
             outs.println(line);
 
             //retrieve info from server about new user creation
-            String success = ins.readLine();
-            String messageFromServer = ins.readLine();
-
-            boolean successful = Boolean.parseBoolean("true");
-
-            if(successful)
-            {
-                //newuser successful
-                System.out.println("Server says: " + messageFromServer);
-            }
-            else
-            {
-                // newuser failed
-                System.out.println("Server says: " + messageFromServer);
-                return false;
-            }
+//            String success = ins.readLine();
+//            String messageFromServer = ins.readLine();
+//
+//            boolean successful = Boolean.parseBoolean("true");
+//
+//            if(successful)
+//            {
+//                //newuser successful
+//                System.out.println("Server says: " + messageFromServer);
+//            }
+//            else
+//            {
+//                // newuser failed
+//                System.out.println("Server says: " + messageFromServer);
+//                return false;
+//            }
         }
-        catch(IOException e){
+        catch(Exception e){
             System.out.println("Error occured in new user creation");
             System.out.println(e);
             return false;
@@ -204,7 +250,7 @@ public class EchoClient
         return true;
     }
 
-    public static boolean send(String message, BufferedReader ins, PrintStream outs)
+    public static boolean send(String message)
     {
         // handles send functionality
 
@@ -214,24 +260,24 @@ public class EchoClient
             outs.println(line);
 
             //retrieve info from server about new user creation
-            String success = ins.readLine();
-            String messageFromServer = ins.readLine();
-
-            boolean successful = Boolean.parseBoolean("true");
-
-            if(successful)
-            {
-                //send successful
-                System.out.println(messageFromServer);
-            }
-            else
-            {
-                // send failed
-                System.out.println("Server says: " + messageFromServer);
-                return false;
-            }
+//            String success = ins.readLine();
+//            String messageFromServer = ins.readLine();
+//
+//            boolean successful = Boolean.parseBoolean("true");
+//
+//            if(successful)
+//            {
+//                //send successful
+//                System.out.println(messageFromServer);
+//            }
+//            else
+//            {
+//                // send failed
+//                System.out.println("Server says: " + messageFromServer);
+//                return false;
+//            }
         }
-        catch(IOException e){
+        catch(Exception e){
             System.out.println("Error occured in sending message");
             System.out.println(e);
             return false;
@@ -240,7 +286,7 @@ public class EchoClient
         return true;
     }
 
-    public static boolean logout(BufferedReader ins, PrintStream outs)
+    public static boolean logout()
     {
         // handles logout functionality
         try {
@@ -249,24 +295,24 @@ public class EchoClient
             outs.println(line);
 
             //retrieve info from server about new user creation
-            String success = ins.readLine();
-            String messageFromServer = ins.readLine();
-
-            boolean successful = Boolean.parseBoolean("true");
-
-            if(successful)
-            {
-                //logout successful
-                System.out.println("Server says: " + messageFromServer);
-            }
-            else
-            {
-                // logout failed
-                System.out.println("Server says: " + messageFromServer);
-                return false;
-            }
+//            String success = ins.readLine();
+//            String messageFromServer = ins.readLine();
+//
+//            boolean successful = Boolean.parseBoolean("true");
+//
+//            if(successful)
+//            {
+//                //logout successful
+//                System.out.println("Server says: " + messageFromServer);
+//            }
+//            else
+//            {
+//                // logout failed
+//                System.out.println("Server says: " + messageFromServer);
+//                return false;
+//            }
         }
-        catch(IOException e){
+        catch(Exception e){
             System.out.println("Error occured in logout");
             System.out.println(e);
             return false;
