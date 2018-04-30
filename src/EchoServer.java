@@ -7,25 +7,83 @@ import java.util.*;
 
 public class EchoServer
 {
-    public static ArrayList<User> Users;
+    public static Vector<User> Users;
+    //public static Vector<ClientThreadHandler> activeClients = new Vector<>();
     public static String inputFile;
     public static final int MAXCLIENTS = 3;
+    public static int numClients = 0;
+    public static ArrayList<ClientThreadHandler> activeClients;
 
     public static void main(String args[]) {
         inputFile = "users.txt";
 
         Users = getUsersFromFile(inputFile);
-        Socket s;
+        Socket socket;
         ServerSocket echoServer;
 
+        activeClients = new ArrayList<>();
+
+
+        System.out.println("Waiting for a client to connect...");
+        try{
+            echoServer = new ServerSocket(11060);
+        }catch(IOException ioe){
+            System.out.println("System failed to create server socket.");
+            return;
+        }
+
+        // keeps the server running indefinitely
+        while(true) {
+
+
+            // server accepts connection request from client
+            try{
+                socket = echoServer.accept();
+
+                printOutUsers();
+
+                System.out.println("Client Connected.");
+
+                // create I/O streams for communication between client and server
+                DataOutputStream outs = new DataOutputStream(socket.getOutputStream());
+                DataInputStream ins = new DataInputStream((socket.getInputStream()));
+
+                ClientThreadHandler newUser = new ClientThreadHandler(ins, outs, socket);
+
+                Thread newThread = new Thread(newUser);
+
+                activeClients.add(newUser);
+
+                printOutUsers();
+
+                newThread.start();
+
+                numClients += 1;
+
+            }
+            catch(Exception e)
+            {
+
+            }
+        }
+    }
+
+    public static void printOutUsers()
+    {
+        for( ClientThreadHandler client : activeClients)
+        {
+            System.out.println("User ID: " + client.userID + " socketnum: " + client.socket.toString());
+            System.out.println(client);
+        }
     }
 
 
-    public static ArrayList<User> getUsersFromFile(String inputFile)
+    public static Vector<User> getUsersFromFile(String inputFile)
     {
-        // READ FILE AND PARSE OUT USERS AND PASSWORD AND PUT IN ARRAYLIST
+        // READ FILE AND PARSE OUT USERS AND PASSWORD AND PUT IN VECTOR
 
-        ArrayList Users = new ArrayList<User>();
+        //Using vector since it is synchronized
+        Vector<User> Users = new Vector<>();
 
         // This will reference one line at a time
         String line = null;
@@ -53,7 +111,6 @@ public class EchoServer
                 {
                     System.out.println("Unable to obtain user information");
                 }
-
             }
 
             // Always close files.

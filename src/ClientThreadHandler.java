@@ -10,102 +10,146 @@ public class ClientThreadHandler implements Runnable {
     public static DataInputStream ins;
     public static DataOutputStream outs;
     public static Socket socket;
+    public static String userID = null;
+    public static ServerSocket serverSocket;
 
     public ClientThreadHandler(DataInputStream ins, DataOutputStream outs, Socket socket) {
         this.ins = ins;
         this.outs = outs;
         this.socket = socket;
+
+        //EchoServer.printOutUsers();
     }
 
     @Override
     public void run() {
 
-        while (true) {
+        boolean connected = true;
 
-            boolean connected = true;
+        try {
 
-            try {
+            while (connected) {
 
-                System.out.println("Waiting for a client to connect...");
+                // used to get input from client
+                //EchoServer.printOutUsers();
+                String line = ins.readUTF();
 
-                System.out.println("Client Connected.");
-                outs = new DataOutputStream(socket.getOutputStream());
-                ins = new DataInputStream((socket.getInputStream()));
+                // parse string to get command and attributes
+                if (line != null) {
+                    String deliminators = "[ ]";
+                    String[] tokens = line.split(deliminators);
 
-                while (connected) {
-                    // used to get input from client
-                    String line = ins.readUTF();
+                    if (tokens[0].equals("login")) {
 
-                    // parse string to get command and attributes
-                    if (line != null) {
-                        String deliminators = "[ ]";
-                        String[] tokens = line.split(deliminators);
+                        String username = tokens[1];
+                        String password = tokens[2];
 
-                        if (tokens[0].equals("login")) {
+                        login(username, password);
 
-                            String username = tokens[1];
-                            String password = tokens[2];
+                    } else if (tokens[0].equals("newuser")) {
 
-                            login(username, password);
+                        String username = tokens[1];
+                        String password = tokens[2];
 
-                        } else if (tokens[0].equals("newuser")) {
+                        newUser(username, password);
 
-                            String username = tokens[1];
-                            String password = tokens[2];
+                    } else if (tokens[0].equals("send") && tokens[1].equals("all")) {
+                        // send all, only works if client is logged in
 
-                            newUser(username, password);
+                        String message = tokens[2];
 
-                        } else if (tokens[0].equals("send")) {
-                            // send only works if client is logged in
-
-                            String message = tokens[1];
-
-                            send(message);
-
-                        } else if (tokens[0].equals("logout")) {
-                            // logout only works if client is logged in
-                            if (logout()) {
-                                connected = false;
-                            }
+                        for( int i = 3; i < tokens.length; i++)
+                        {
+                            message += (" " + tokens[i]);
                         }
-                    } else {
-                        // do nothing if empty string
-                    }
-                }
 
-                System.out.println("Client Closed.");
-            } catch (IOException e) {
-                //System.out.println(e);
-            } catch (Exception e) {
-                // do nothing
+                        sendall(message);
+                    } else if (tokens[0].equals("send")) {
+                        // send only works if client is logged in
+                        String userID = tokens[1];
+
+                        //piece the original message back together if multiple words
+                        String message = tokens[2];
+
+                        for( int i = 3; i < tokens.length; i++)
+                        {
+                            message += (" " + tokens[i]);
+                        }
+
+                        send(message, userID);
+
+                    } else if (tokens[0].equals("who")) {
+                        // who, lists all clients
+
+                        who();
+
+                    } else if (tokens[0].equals("logout")) {
+                        // logout only works if client is logged in
+                        if (logout()) {
+                            connected = false;
+
+                            //remove from activeClients
+                            EchoServer.activeClients.remove(this);
+                            EchoServer.numClients--;
+                            this.socket.close();
+
+                            // I DONT KNOW IF THIS IS NEEDED OR NOT ////////////////////////////////////////////////////
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                } else {
+                    // do nothing if empty string
+                }
+                EchoServer.printOutUsers();
             }
+
+            System.out.println("Client Closed.");
+        } catch (IOException e) {
+            //System.out.println(e);
+        } catch (Exception e) {
+            // do nothing
         }
     }
 
-
-
-    public static boolean login(String username, String password)
+    public boolean login(String username, String password)
     {
+        EchoServer.printOutUsers();
+
         try {
             // handles the login functionality
-            boolean loginSuccessful = false;
+            boolean loginSuccessful = true;
             User loggedInUser = null;
             // find username and compare password
-            for (User u : EchoServer.Users) {
-                if (u.username.equals(username)) {
-                    //check if username and password match
-                    if (u.password.equals(password)) {
-                        loginSuccessful = true;
-                        loggedInUser = u;
-                    }
-                }
-            }
+//            for (User u : EchoServer.Users) {
+//                if (u.username.equals(username)) {
+//                    //check if username and password match
+//                    if (u.password.equals(password)) {
+//                        loginSuccessful = true;
+//                        loggedInUser = u;
+//                    }
+//                }
+//            }
 
             if (loginSuccessful) {
-                currentUser = loggedInUser;
+                this.userID = username;
 
-                outs.writeBoolean(true);
-                outs.writeUTF(username + " is now logged in.");
+//                outs.writeBoolean(true);
+//                outs.writeUTF(username + " is now logged in.");
+
+                // Write to other clients that new client has logged in
+                EchoServer.printOutUsers();
+
+
+                for(ClientThreadHandler client : EchoServer.activeClients)
+                {
+                    if(client.userID != null) {
+
+                        client.outs.writeBoolean(true);
+                        client.outs.writeUTF(this.userID + " has logged in");
+                    }
+                }
+
+                System.out.println(this.userID + ": logged in");
 
                 return true;
             } else {
@@ -121,7 +165,7 @@ public class ClientThreadHandler implements Runnable {
         return false;
     }
 
-    public static boolean newUser(String username, String password)
+    public boolean newUser(String username, String password)
     {
         try {
             //check if username and password are the correct format
@@ -173,10 +217,21 @@ public class ClientThreadHandler implements Runnable {
             }
 
             // User creation successful, user logged in
-            currentUser = newUser;
-            outs.writeBoolean(true);
-            outs.writeUTF("User creation successful! Welcome " + username + "!");
+            this.userID = username;
+//            outs.writeBoolean(true);
+//            outs.writeUTF("User creation successful! Welcome " + username + "!");
 
+            // Write to other clients that new client has logged in
+            for(ClientThreadHandler client : EchoServer.activeClients)
+            {
+                if(client.userID != null) {
+
+                    client.outs.writeBoolean(true);
+                    client.outs.writeUTF(this.userID + " has logged in");
+                }
+            }
+
+            System.out.println(this.userID + ": logged in");
             return true;
         }
         catch(Exception e)
@@ -186,18 +241,40 @@ public class ClientThreadHandler implements Runnable {
         return false;
     }
 
-    public static boolean send(String message)
+    public boolean send(String message, String userID)
     {
         // check to make sure user is logged in
         try {
-            if (currentUser.equals(null)) {
+            if (this.userID == null)
+            {
                 // if user is not logged in shoot back error message
                 outs.writeBoolean(false);
                 outs.writeUTF("You are currently not logged in!");
                 return false;
-            } else {
-                outs.writeBoolean(true);
-                outs.writeUTF(currentUser.username + ": " + message);
+            }
+            else
+            {
+//                outs.writeBoolean(true);
+//                outs.writeUTF(this.userID + ": " + message);
+
+                // Write to other clients that new client has logged in
+                for(ClientThreadHandler client : EchoServer.activeClients)
+                {
+                    if(client.userID != null && client.userID.equals(userID))
+                    {
+                        client.outs.writeBoolean(true);
+                        client.outs.writeUTF(this.userID + ":  " + message);
+                    }
+                    else
+                    {
+                        // the client requested does not exist
+                        outs.writeBoolean(false);
+                        outs.writeUTF("The client you requested does not exist!");
+                    }
+                }
+
+                System.out.println(this.userID + " (to " + userID + "): " + message );
+
                 return true;
             }
         }
@@ -208,17 +285,98 @@ public class ClientThreadHandler implements Runnable {
         return false;
     }
 
-    public static boolean logout()
+    public boolean sendall(String message)
+    {
+        // check to make sure user is logged in
+        try {
+            if (this.userID == null) {
+                // if user is not logged in shoot back error message
+                outs.writeBoolean(false);
+                outs.writeUTF("You are currently not logged in!");
+                return false;
+            } else {
+//                outs.writeBoolean(true);
+//                outs.writeUTF(this.userID + ": " + message);
+
+                // Write to other clients that new client has logged in
+                for(ClientThreadHandler client : EchoServer.activeClients)
+                {
+                    if( client.userID != null && !client.userID.equals(this.userID))
+                    {
+                        client.outs.writeBoolean(true);
+                        client.outs.writeUTF(this.userID + ":  " + message);
+                    }
+                }
+
+                System.out.println(this.userID + ": " + message);
+                return true;
+            }
+        }
+        catch(Exception e)
+        {
+
+        }
+        return false;
+    }
+
+    public boolean who()
+    {
+        // check to make sure user is logged in
+        try {
+            if (this.userID == null) {
+                // if user is not logged in shoot back error message
+                outs.writeBoolean(false);
+                outs.writeUTF("You are currently not logged in!");
+                return false;
+            } else {
+
+                String userList = "";
+
+                // Write to other clients that new client has logged in
+                for(ClientThreadHandler client : EchoServer.activeClients)
+                {
+                    if( client.userID != null)
+                    {
+                        userList += (client.userID + ", ");
+                    }
+                }
+
+                //write list to client
+                this.outs.writeBoolean(true);
+                this.outs.writeUTF(userList);
+
+                return true;
+            }
+        }
+        catch(Exception e)
+        {
+
+        }
+        return false;
+    }
+
+    public boolean logout()
     {
         try {
-            if (currentUser.equals(null)) {
+            if (this.userID == null) {
                 // if user is not logged in shoot back error message
                 outs.writeBoolean(false);
                 outs.writeUTF("You are currently not logged in!");
                 return false;
             } else {
+
+                for(ClientThreadHandler client : EchoServer.activeClients)
+                {
+                    if(client.userID != null)
+                    {
+                        client.outs.writeBoolean(true);
+                        client.outs.writeUTF(this.userID + " left");
+                    }
+                }
+
                 outs.writeBoolean(true);
-                outs.writeUTF(currentUser.username + ": left");
+                outs.writeUTF(this.userID + ": left");
+                System.out.println(this.userID + ": left");
                 return true;
             }
         }
@@ -228,6 +386,5 @@ public class ClientThreadHandler implements Runnable {
         }
         return false;
     }
-
 }
 

@@ -51,21 +51,45 @@ public class EchoClient extends Thread
                                 String[] tokens = line.split(deliminators);
 
                                 if (tokens[0].equals("login")) {
-                                    //send username and password to server for authentication
+                                    //login
                                     String username = tokens[1];
                                     String password = tokens[2];
 
                                     login(username, password);
 
                                 } else if (tokens[0].equals("newuser")) {
+                                    // new user
                                     String username = tokens[1];
                                     String password = tokens[2];
 
                                     newUser(username, password);
-                                } else if (tokens[0].equals("send")) {
-                                    String message = tokens[1];
+                                } else if (tokens[0].equals("send") && tokens[1].equals("all")) {
+                                    // send all
 
-                                    send(message);
+                                    String message = tokens[2];
+
+                                    for( int i = 3; i < tokens.length; i++)
+                                    {
+                                        message += (" " + tokens[i]);
+                                    }
+
+                                    sendall(message);
+                                }else if (tokens[0].equals("send")) {
+
+                                    String userID = tokens[1];
+
+                                    String message = tokens[2];
+
+                                    for( int i = 3; i < tokens.length; i++)
+                                    {
+                                        message += (" " + tokens[i]);
+                                    }
+
+                                    send(message, userID);
+                                } else if (tokens[0].equals("who")) {
+                                    // who, list all users in chat room
+
+                                    who();
                                 } else if (tokens[0].equals("logout")) {
                                     if (logout()) {
                                         // logout, close the client, and exit the program
@@ -74,10 +98,8 @@ public class EchoClient extends Thread
                                         //close down thread
                                         Thread.currentThread().interrupt();
 
-
                                         // close socket
                                         echoClient.close();
-
                                     }
                                 }
                             } else {
@@ -168,13 +190,31 @@ public class EchoClient extends Thread
             }
             return true;
         }
-        else if (tokens[0].equals("send"))
+        else if (tokens[0].equals("send") && tokens.length > 1 && tokens[1].equals("all") ) //send all
         {
-            if(tokens.length != 2)
+            if(tokens.length < 3)
             {
-                System.out.println("No message given to send!");
+                System.out.println("No message was given to send!");
                 return false;
             }
+            return true;
+        }
+        else if (tokens[0].equals("send")) // send
+        {
+            if(tokens.length < 3)
+            {
+                System.out.println("No message or userID was given to send!");
+                return false;
+            }
+            return true;
+        }
+        else if (tokens[0].equals("who"))
+        {
+//            if(tokens.length != 3)
+//            {
+//                System.out.println("Incorrect number of arguments for newuser!");
+//                return false;
+//            }
             return true;
         }
         else if (tokens[0].equals("logout"))
@@ -225,13 +265,32 @@ public class EchoClient extends Thread
         return true;
     }
 
-    public static boolean send(String message)
+    public static boolean who()
+    {
+        // handles new user creation functionality
+
+        try {
+            //send login info to server
+            String line = "who";
+            outs.writeUTF(line);
+
+        }
+        catch(Exception e){
+            System.out.println("Error occured in requesting chat room clients");
+            System.out.println(e);
+            return false;
+        }
+        return true;
+    }
+
+
+    public static boolean send(String message, String userID)
     {
         // handles send functionality
 
         try {
             //send login info to server
-            String line = "send " + message;
+            String line = "send " + userID + " " + message;
             outs.writeUTF(line);
 
         }
@@ -243,6 +302,26 @@ public class EchoClient extends Thread
 
         return true;
     }
+
+    public static boolean sendall(String message)
+    {
+        // handles send functionality
+
+        try {
+            //send login info to server
+            String line = "send all " + message;
+            outs.writeUTF(line);
+
+        }
+        catch(Exception e){
+            System.out.println("Error occured in sending message");
+            System.out.println(e);
+            return false;
+        }
+
+        return true;
+    }
+
 
     public static boolean logout()
     {
