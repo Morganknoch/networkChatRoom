@@ -78,6 +78,7 @@ public class EchoServer
                         if(logout(ins, outs))
                         {
                             connected = false;
+							currentUser = null;
                         }
                     }
                 }
@@ -235,7 +236,7 @@ public class EchoServer
     {
         // READ FILE AND PARSE OUT USERS AND PASSWORD AND PUT IN ARRAYLIST
 
-        ArrayList Users = new ArrayList<User>();
+        ArrayList<User> Users = new ArrayList<>();
 
         // This will reference one line at a time
         String line = null;
