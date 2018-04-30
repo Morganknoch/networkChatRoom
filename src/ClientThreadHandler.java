@@ -7,18 +7,16 @@ import java.util.*;
  */
 public class ClientThreadHandler implements Runnable {
 
-    public static DataInputStream ins;
-    public static DataOutputStream outs;
-    public static Socket socket;
-    public static String userID = null;
-    public static ServerSocket serverSocket;
+    public DataInputStream ins;
+    public DataOutputStream outs;
+    public Socket socket;
+    public String userID = null;
+    public ServerSocket serverSocket;
 
     public ClientThreadHandler(DataInputStream ins, DataOutputStream outs, Socket socket) {
         this.ins = ins;
         this.outs = outs;
         this.socket = socket;
-
-        //EchoServer.printOutUsers();
     }
 
     @Override
@@ -31,7 +29,7 @@ public class ClientThreadHandler implements Runnable {
             while (connected) {
 
                 // used to get input from client
-                //EchoServer.printOutUsers();
+
                 String line = ins.readUTF();
 
                 // parse string to get command and attributes
@@ -100,7 +98,6 @@ public class ClientThreadHandler implements Runnable {
                 } else {
                     // do nothing if empty string
                 }
-                EchoServer.printOutUsers();
             }
 
             System.out.println("Client Closed.");
@@ -113,33 +110,45 @@ public class ClientThreadHandler implements Runnable {
 
     public boolean login(String username, String password)
     {
-        EchoServer.printOutUsers();
-
         try {
             // handles the login functionality
             boolean loginSuccessful = true;
             User loggedInUser = null;
             // find username and compare password
-//            for (User u : EchoServer.Users) {
-//                if (u.username.equals(username)) {
-//                    //check if username and password match
-//                    if (u.password.equals(password)) {
-//                        loginSuccessful = true;
-//                        loggedInUser = u;
-//                    }
-//                }
-//            }
+            for (User u : EchoServer.Users) {
+                if (u.username.equals(username)) {
+                    //check if username and password match
+                    if (u.password.equals(password)) {
+                        loginSuccessful = true;
+                        loggedInUser = u;
+                    }
+                }
+            }
 
+
+            boolean alreadyLoggedIn = false;
+            // need to make sure a person is logged in more than once
+            for(ClientThreadHandler client : EchoServer.activeClients)
+            {
+                if(client.userID != null && client.userID.equals(username)) {
+                    alreadyLoggedIn = true;
+                    break;
+                }
+            }
+
+            // if person is already logged in, send error back to client that attempted login
+            if(alreadyLoggedIn)
+            {
+                outs.writeBoolean(false);
+                outs.writeUTF("That user is already logged in!");
+                return false;
+            }
+
+            // if the login is successful then notify other clients and initialize userID to show that login successful
             if (loginSuccessful) {
                 this.userID = username;
 
-//                outs.writeBoolean(true);
-//                outs.writeUTF(username + " is now logged in.");
-
                 // Write to other clients that new client has logged in
-                EchoServer.printOutUsers();
-
-
                 for(ClientThreadHandler client : EchoServer.activeClients)
                 {
                     if(client.userID != null) {
@@ -198,28 +207,28 @@ public class ClientThreadHandler implements Runnable {
             EchoServer.Users.add(newUser);
 
             // write new user to inputfile
-            try {
-                BufferedWriter writer = new BufferedWriter(new FileWriter(EchoServer.inputFile, true));
-                writer.append("\n" + username + " " + password);
-                writer.close();
-            } catch (IOException e) {
-                System.out.println(e);
-                outs.writeBoolean(false);
-                outs.writeUTF("Error writing to file! User creation failed!");
-                EchoServer.Users.remove(newUser);
-                return false;
-            } catch (Exception e) // in case of Null Pointer Exception
-            {
-                outs.writeBoolean(false);
-                outs.writeUTF("Error in writing to file! User creation failed!");
-                EchoServer.Users.remove(newUser);
-                return false;
+            synchronized (this) {
+                try {
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(EchoServer.inputFile, true));
+                    writer.append("\n" + username + " " + password);
+                    writer.close();
+                } catch (IOException e) {
+                    System.out.println(e);
+                    outs.writeBoolean(false);
+                    outs.writeUTF("Error writing to file! User creation failed!");
+                    EchoServer.Users.remove(newUser);
+                    return false;
+                } catch (Exception e) // in case of Null Pointer Exception
+                {
+                    outs.writeBoolean(false);
+                    outs.writeUTF("Error in writing to file! User creation failed!");
+                    EchoServer.Users.remove(newUser);
+                    return false;
+                }
             }
 
             // User creation successful, user logged in
             this.userID = username;
-//            outs.writeBoolean(true);
-//            outs.writeUTF("User creation successful! Welcome " + username + "!");
 
             // Write to other clients that new client has logged in
             for(ClientThreadHandler client : EchoServer.activeClients)
@@ -254,9 +263,6 @@ public class ClientThreadHandler implements Runnable {
             }
             else
             {
-//                outs.writeBoolean(true);
-//                outs.writeUTF(this.userID + ": " + message);
-
                 // Write to other clients that new client has logged in
                 for(ClientThreadHandler client : EchoServer.activeClients)
                 {
@@ -265,11 +271,12 @@ public class ClientThreadHandler implements Runnable {
                         client.outs.writeBoolean(true);
                         client.outs.writeUTF(this.userID + ":  " + message);
                     }
-                    else
+                    else if(client.userID != null && !client.userID.equals(this.userID))
                     {
                         // the client requested does not exist
                         outs.writeBoolean(false);
                         outs.writeUTF("The client you requested does not exist!");
+                        return false;
                     }
                 }
 
@@ -295,8 +302,6 @@ public class ClientThreadHandler implements Runnable {
                 outs.writeUTF("You are currently not logged in!");
                 return false;
             } else {
-//                outs.writeBoolean(true);
-//                outs.writeUTF(this.userID + ": " + message);
 
                 // Write to other clients that new client has logged in
                 for(ClientThreadHandler client : EchoServer.activeClients)

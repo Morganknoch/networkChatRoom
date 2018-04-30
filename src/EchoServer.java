@@ -8,11 +8,12 @@ import java.util.*;
 public class EchoServer
 {
     public static Vector<User> Users;
-    //public static Vector<ClientThreadHandler> activeClients = new Vector<>();
+    public static Vector<ClientThreadHandler> activeClients = new Vector<>();
     public static String inputFile;
     public static final int MAXCLIENTS = 3;
     public static int numClients = 0;
-    public static ArrayList<ClientThreadHandler> activeClients;
+    //public static ArrayList<ClientThreadHandler> activeClients;
+    static Socket prevSocket;
 
     public static void main(String args[]) {
         inputFile = "users.txt";
@@ -20,9 +21,6 @@ public class EchoServer
         Users = getUsersFromFile(inputFile);
         Socket socket;
         ServerSocket echoServer;
-
-        activeClients = new ArrayList<>();
-
 
         System.out.println("Waiting for a client to connect...");
         try{
@@ -35,18 +33,15 @@ public class EchoServer
         // keeps the server running indefinitely
         while(true) {
 
-
             // server accepts connection request from client
             try{
                 socket = echoServer.accept();
-
-                printOutUsers();
 
                 System.out.println("Client Connected.");
 
                 // create I/O streams for communication between client and server
                 DataOutputStream outs = new DataOutputStream(socket.getOutputStream());
-                DataInputStream ins = new DataInputStream((socket.getInputStream()));
+                DataInputStream ins = new DataInputStream(socket.getInputStream());
 
                 ClientThreadHandler newUser = new ClientThreadHandler(ins, outs, socket);
 
@@ -54,12 +49,9 @@ public class EchoServer
 
                 activeClients.add(newUser);
 
-                printOutUsers();
-
                 newThread.start();
 
                 numClients += 1;
-
             }
             catch(Exception e)
             {
@@ -67,16 +59,6 @@ public class EchoServer
             }
         }
     }
-
-    public static void printOutUsers()
-    {
-        for( ClientThreadHandler client : activeClients)
-        {
-            System.out.println("User ID: " + client.userID + " socketnum: " + client.socket.toString());
-            System.out.println(client);
-        }
-    }
-
 
     public static Vector<User> getUsersFromFile(String inputFile)
     {
