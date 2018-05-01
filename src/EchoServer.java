@@ -34,28 +34,28 @@ public class EchoServer
         while(true) {
 
             // server accepts connection request from client
-            try{
-                socket = echoServer.accept();
+            if(numClients < MAXCLIENTS) {
+                try {
+                    socket = echoServer.accept();
 
-                System.out.println("Client Connected.");
+                    System.out.println("Client Connected.");
 
-                // create I/O streams for communication between client and server
-                DataOutputStream outs = new DataOutputStream(socket.getOutputStream());
-                DataInputStream ins = new DataInputStream(socket.getInputStream());
+                    // create I/O streams for communication between client and server
+                    DataOutputStream outs = new DataOutputStream(socket.getOutputStream());
+                    DataInputStream ins = new DataInputStream(socket.getInputStream());
 
-                ClientThreadHandler newUser = new ClientThreadHandler(ins, outs, socket);
+                    ClientThreadHandler newUser = new ClientThreadHandler(ins, outs, socket);
 
-                Thread newThread = new Thread(newUser);
+                    Thread newThread = new Thread(newUser);
 
-                activeClients.add(newUser);
+                    activeClients.add(newUser);
 
-                newThread.start();
+                    newThread.start();
 
-                numClients += 1;
-            }
-            catch(Exception e)
-            {
+                    numClients += 1;
+                } catch (Exception e) {
 
+                }
             }
         }
     }
