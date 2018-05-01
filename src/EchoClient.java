@@ -11,9 +11,11 @@ public class EchoClient extends Thread
     public static DataOutputStream outs;
     public static boolean loggedin = true;
     public static Scanner stdin;
+    public static Socket echoClient;
 
     public static void main(String args[])
     {
+
         if(args.length != 1)
         {
             System.out.println("No IP address was given!");
@@ -25,7 +27,7 @@ public class EchoClient extends Thread
 
         try
         {
-            Socket echoClient = new Socket(args[0], 11060);
+            echoClient = new Socket(args[0], 11060);
             outs = new DataOutputStream(echoClient.getOutputStream());
             ins = new DataInputStream((echoClient.getInputStream()));
 
