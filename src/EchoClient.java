@@ -33,6 +33,8 @@ public class EchoClient extends Thread
 
             System.out.println("My chat room client.");
 
+
+
             Thread sendMessageToServer = new Thread(new Runnable() {
 
                 /* This thread is used to send messages to the server
@@ -104,9 +106,12 @@ public class EchoClient extends Thread
                                         echoClient.close();
                                     }
                                 }
+
                             } else {
                                 //commands were incorrect, do nothing
                             }
+
+
                         }catch(Exception e)
                         {
 
@@ -141,8 +146,17 @@ public class EchoClient extends Thread
                                 System.out.println(message);
 
                             }
-                            
-                        } catch (Exception e) {
+
+                        } catch (EOFException e)
+                        {
+                            //error reading
+
+                            System.out.println("Failed to connect to server.");
+                            System.exit(0);
+
+                        }
+                        catch (Exception e) {
+                            //System.out.println(e);
 
                         }
                     }

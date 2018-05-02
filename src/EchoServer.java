@@ -12,7 +12,6 @@ public class EchoServer
     public static String inputFile;
     public static final int MAXCLIENTS = 3;
     public static int numClients = 0;
-    //public static ArrayList<ClientThreadHandler> activeClients;
     static Socket prevSocket;
 
     public static void main(String args[]) {
@@ -34,10 +33,10 @@ public class EchoServer
         while(true) {
 
             // server accepts connection request from client
-            if(numClients < MAXCLIENTS) {
-                try {
-                    socket = echoServer.accept();
+            try {
+                socket = echoServer.accept();
 
+                if(numClients < MAXCLIENTS) {
                     System.out.println("Client Connected.");
 
                     // create I/O streams for communication between client and server
@@ -53,9 +52,14 @@ public class EchoServer
                     newThread.start();
 
                     numClients += 1;
-                } catch (Exception e) {
-
                 }
+                else {
+                    System.out.println("There are too many clients connected");
+                    socket.close();
+                }
+
+            } catch (Exception e) {
+                System.out.println(e);
             }
         }
     }

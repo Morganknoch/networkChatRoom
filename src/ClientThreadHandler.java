@@ -11,7 +11,6 @@ public class ClientThreadHandler implements Runnable {
     public DataOutputStream outs;
     public Socket socket;
     public String userID = null;
-    public ServerSocket serverSocket;
 
     public ClientThreadHandler(DataInputStream ins, DataOutputStream outs, Socket socket) {
         this.ins = ins;
@@ -86,13 +85,14 @@ public class ClientThreadHandler implements Runnable {
                         if (logout()) {
                             connected = false;
 
+                            EchoServer.numClients -= 1;
+
                             //remove from activeClients
                             EchoServer.activeClients.remove(this);
-                            EchoServer.numClients--;
                             this.socket.close();
 
-                            // I DONT KNOW IF THIS IS NEEDED OR NOT ////////////////////////////////////////////////////
-                            Thread.currentThread().interrupt();
+                            // I DONT KNOW IF THIS IS NEEDED OR NOT
+                            //Thread.currentThread().interrupt();
                         }
                     }
                 } else {
@@ -102,9 +102,12 @@ public class ClientThreadHandler implements Runnable {
 
             System.out.println("Client Closed.");
         } catch (IOException e) {
-            //System.out.println(e);
+            System.out.println(e);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             // do nothing
+            System.out.println(e);
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -112,15 +115,14 @@ public class ClientThreadHandler implements Runnable {
     {
         try {
             // handles the login functionality
-            boolean loginSuccessful = true;
-            User loggedInUser = null;
+            boolean loginSuccessful = false;
+
             // find username and compare password
             for (User u : EchoServer.Users) {
                 if (u.username.equals(username)) {
                     //check if username and password match
                     if (u.password.equals(password)) {
                         loginSuccessful = true;
-                        loggedInUser = u;
                     }
                 }
             }
@@ -270,19 +272,19 @@ public class ClientThreadHandler implements Runnable {
                     {
                         client.outs.writeBoolean(true);
                         client.outs.writeUTF(this.userID + ":  " + message);
-                    }
-                    else if(client.userID != null && !client.userID.equals(this.userID))
-                    {
-                        // the client requested does not exist
-                        outs.writeBoolean(false);
-                        outs.writeUTF("The client you requested does not exist!");
-                        return false;
+                        System.out.println(this.userID + " (to " + userID + "): " + message );
+
+                        return true;
                     }
                 }
 
-                System.out.println(this.userID + " (to " + userID + "): " + message );
 
-                return true;
+                // the client requested does not exist
+                outs.writeBoolean(false);
+                outs.writeUTF("The client you requested does not exist!");
+                return false;
+
+
             }
         }
         catch(Exception e)
@@ -372,24 +374,22 @@ public class ClientThreadHandler implements Runnable {
 
                 for(ClientThreadHandler client : EchoServer.activeClients)
                 {
-                    if(client.userID != null)
+                    if(client.userID != null && !client.userID.equals(this.userID))
                     {
                         client.outs.writeBoolean(true);
                         client.outs.writeUTF(this.userID + " left");
                     }
                 }
 
-                outs.writeBoolean(true);
-                outs.writeUTF(this.userID + ": left");
                 System.out.println(this.userID + ": left");
                 return true;
             }
         }
         catch(Exception e)
         {
-
+            System.out.println(e);
         }
-        return false;
+        return true;
     }
 }
 
