@@ -4,6 +4,10 @@ import java.util.*;
 
 /**
  * Created by Morgan on 4/29/2018.
+ * Written for CS4850 Graduate Network Chatroom Project
+ * This is a class for handling all of the operations for each of the
+ * connected clients on the server. This class spawns new threads for
+ * each client so there can be multiple connected users.
  */
 public class ClientThreadHandler implements Runnable {
 
@@ -89,10 +93,10 @@ public class ClientThreadHandler implements Runnable {
 
                             //remove from activeClients
                             EchoServer.activeClients.remove(this);
+
+                            // close socket
                             this.socket.close();
 
-                            // I DONT KNOW IF THIS IS NEEDED OR NOT
-                            //Thread.currentThread().interrupt();
                         }
                     }
                 } else {
@@ -102,11 +106,11 @@ public class ClientThreadHandler implements Runnable {
 
             System.out.println("Client Closed.");
         } catch (IOException e) {
-            System.out.println(e);
+            // error reading data
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            // do nothing
-            System.out.println(e);
+            // stop thread if other exception
+
             Thread.currentThread().interrupt();
         }
     }
@@ -160,10 +164,13 @@ public class ClientThreadHandler implements Runnable {
                     }
                 }
 
+                // print message for server
                 System.out.println(this.userID + ": logged in");
 
                 return true;
             } else {
+
+                // send error message back to client
                 outs.writeBoolean(false);
                 outs.writeUTF("Incorrect username or password");
                 return false;
@@ -171,7 +178,7 @@ public class ClientThreadHandler implements Runnable {
         }
         catch(Exception e)
         {
-
+            // if error do nothing, continue the program
         }
         return false;
     }
@@ -192,6 +199,7 @@ public class ClientThreadHandler implements Runnable {
                 return false;
             }
 
+            // check if username already exists
             for (User u : EchoServer.Users) {
                 if (u.username.equals(username)) {
                     // The username already exists
@@ -247,7 +255,7 @@ public class ClientThreadHandler implements Runnable {
         }
         catch(Exception e)
         {
-
+            // if error do nothing, continue the program
         }
         return false;
     }
@@ -289,7 +297,7 @@ public class ClientThreadHandler implements Runnable {
         }
         catch(Exception e)
         {
-
+            // if error do nothing, continue the program
         }
         return false;
     }
@@ -321,7 +329,7 @@ public class ClientThreadHandler implements Runnable {
         }
         catch(Exception e)
         {
-
+            // if error do nothing, continue the program
         }
         return false;
     }
@@ -357,7 +365,7 @@ public class ClientThreadHandler implements Runnable {
         }
         catch(Exception e)
         {
-
+            // if error do nothing, continue the program
         }
         return false;
     }
@@ -387,6 +395,7 @@ public class ClientThreadHandler implements Runnable {
         }
         catch(Exception e)
         {
+            // error on disconnection with client
             System.out.println(e);
         }
         return true;

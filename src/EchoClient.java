@@ -1,5 +1,10 @@
 /**
  * Created by Morgan Knoch on 4/20/2018.
+ * Written for CS4850 Graduate Network Chatroom Project
+ * This program creates a socket connection with a server, takes input
+ * from the command line, and creates a client-server chatroom. This class
+ * creates two threads for communication: one for listening for output from
+ * the server, and one for sending user input to the server.
  */
 import java.io.*;
 import java.net.*;
@@ -16,6 +21,7 @@ public class EchoClient extends Thread
     public static void main(String args[])
     {
 
+        // need to input the IP of the server
         if(args.length != 1)
         {
             System.out.println("No IP address was given!");
@@ -27,6 +33,7 @@ public class EchoClient extends Thread
 
         try
         {
+            // create client side socket and data input/output streams
             echoClient = new Socket(args[0], 11060);
             outs = new DataOutputStream(echoClient.getOutputStream());
             ins = new DataInputStream((echoClient.getInputStream()));
@@ -70,8 +77,10 @@ public class EchoClient extends Thread
                                 } else if (tokens[0].equals("send") && tokens[1].equals("all")) {
                                     // send all
 
+                                    // get first word of message
                                     String message = tokens[2];
 
+                                    // if more than one word, piece the message back together
                                     for( int i = 3; i < tokens.length; i++)
                                     {
                                         message += (" " + tokens[i]);
@@ -178,6 +187,8 @@ public class EchoClient extends Thread
 
     public static boolean commandsAccepted(String line)
     {
+        // Check to see if the inputted commands are valid
+
         if(line.length() == 0)
         {
             System.out.println("No command was entered!");
@@ -226,15 +237,12 @@ public class EchoClient extends Thread
         }
         else if (tokens[0].equals("who"))
         {
-//            if(tokens.length != 3)
-//            {
-//                System.out.println("Incorrect number of arguments for newuser!");
-//                return false;
-//            }
+            // ignore if extra parameters
             return true;
         }
         else if (tokens[0].equals("logout"))
         {
+            // ignore if extra parameters
             return true;
         }
         else
@@ -283,13 +291,12 @@ public class EchoClient extends Thread
 
     public static boolean who()
     {
-        // handles new user creation functionality
+        // handles user listing functionality
 
         try {
-            //send login info to server
+            //send who command to server
             String line = "who";
             outs.writeUTF(line);
-
         }
         catch(Exception e){
             System.out.println("Error occured in requesting chat room clients");
@@ -305,7 +312,7 @@ public class EchoClient extends Thread
         // handles send functionality
 
         try {
-            //send login info to server
+            //send message to server
             String line = "send " + userID + " " + message;
             outs.writeUTF(line);
 
@@ -321,10 +328,10 @@ public class EchoClient extends Thread
 
     public static boolean sendall(String message)
     {
-        // handles send functionality
+        // handles send all functionality
 
         try {
-            //send login info to server
+            //send message to server
             String line = "send all " + message;
             outs.writeUTF(line);
 
@@ -343,7 +350,7 @@ public class EchoClient extends Thread
     {
         // handles logout functionality
         try {
-            //send login info to server
+            //send logout message to server
             String line = "logout";
             outs.writeUTF(line);
 

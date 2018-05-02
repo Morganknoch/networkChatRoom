@@ -1,5 +1,8 @@
 /**
  * Created by Morgan Knoch on 4/21/2018.
+ * Written for CS4850 Graduate Network Chatroom Project
+ * Helper class to be used with EchoServer, which
+ * holds userID and password for each individual user
  */
 public class User {
 
